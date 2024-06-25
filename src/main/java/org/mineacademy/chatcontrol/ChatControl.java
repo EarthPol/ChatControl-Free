@@ -75,6 +75,7 @@ public final class ChatControl extends JavaPlugin {
 		try {
 			instance = this;
 
+			Common.initialize(this);
 			CompatProvider.setupReflection();
 			HookManager.loadDependencies();
 			ConfHelper.loadAll();

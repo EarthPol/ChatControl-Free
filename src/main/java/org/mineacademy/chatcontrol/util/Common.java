@@ -8,6 +8,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import com.palmergames.bukkit.towny.scheduling.impl.FoliaTaskScheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -15,6 +16,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.MetadataValue;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.mineacademy.chatcontrol.ChatControl;
 import org.mineacademy.chatcontrol.settings.Localization;
 import org.mineacademy.chatcontrol.settings.Settings;
@@ -43,6 +45,15 @@ public final class Common {
 	 * Internal plugin prefix.
 	 */
 	private static String INTERNAL_PREFIX = "";
+
+	private static JavaPlugin plugin;
+	private static FoliaTaskScheduler scheduler;
+
+	public static void initialize(JavaPlugin pluginInstance) {
+		plugin = pluginInstance;
+		scheduler = new FoliaTaskScheduler(plugin);
+		plugin.getLogger().info("Common class initialized, scheduler created");
+	}
 
 	private Common() {
 	}
@@ -127,11 +138,20 @@ public final class Common {
 	 * @param delayTicks
 	 * @param messages
 	 */
-	public static void tellLater(final CommandSender sender, int delayTicks, final String... messages) {
-		Bukkit.getScheduler().scheduleSyncDelayedTask(ChatControl.getInstance(), () -> {
-			tell(sender, messages);
-
-		}, delayTicks);
+	public static void tellLater(Player player, int delayTicks, String... messages) {
+		if (scheduler != null) {
+			scheduler.runLater(() -> {
+				for (String message : messages) {
+					player.sendMessage(message);
+				}
+			}, delayTicks);
+		} else {
+			Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> {
+				for (String message : messages) {
+					player.sendMessage(message);
+				}
+			}, delayTicks);
+		}
 	}
 
 	/**
@@ -173,13 +193,12 @@ public final class Common {
 	 *
 	 * @param command
 	 */
-	public static void dispatchConsoleCommand(final String command) {
-		if (command.isEmpty() || command.equalsIgnoreCase("none"))
-			return;
-
-		Bukkit.getScheduler().scheduleSyncDelayedTask(ChatControl.getInstance(), () -> {
-			Bukkit.dispatchCommand(Bukkit.getServer().getConsoleSender(), colorize(command));
-		});
+	public static void dispatchConsoleCommand(String command) {
+		if (scheduler != null) {
+			scheduler.runAsync(() -> Bukkit.dispatchCommand(console, command));
+		} else {
+			Bukkit.dispatchCommand(console, command);
+		}
 	}
 
 	/**
